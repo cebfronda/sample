@@ -1,0 +1,272 @@
+<?php require_once("header.php"); ?>
+<!-- start checkboxTree configuration -->
+    <script type="text/javascript" src="checkboxtree/library/jquery-1.4.4.js"></script>
+    <script type="text/javascript" src="checkboxtree/library/jquery-ui-1.8.12.custom/js/jquery-ui-1.8.12.custom.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+          href="checkboxtree/library/jquery-ui-1.8.12.custom/css/smoothness/jquery-ui-1.8.12.custom.css"/>
+
+    <script type="text/javascript" src="checkboxtree/jquery.checkboxtree.js"></script>
+    <link rel="stylesheet" type="text/css" href="checkboxtree/jquery.checkboxtree.css"/>
+    <!-- end checkboxTree configuration -->
+
+<!-- testing --> 
+
+
+<script type="text/javascript">
+
+        var checkboxHandlerObj = {
+            populate: function() {
+                var tree = '';
+                $.getJSON('cgi-bin/get_samples.pl', function(data) {
+                    tree = tree + '<ul id="tree_samples">';
+                    $.each(data, function(file, lines) {
+                        // every parent element should be contained in a <li>
+                        if ( typeof(lines) == 'object' ) {
+                            var id = 'sites_'+file;
+                            tree = tree + '<li> <input id="'+id+'" class="parent checkbox cbox" type="checkbox" value="1" checked="checked"/>'+
+                                '<label for="'+id+'">'+file+'</label>';
+                            // insert another <ul> for the child that is a directory.. (doesn't need to specify id)
+                            tree = tree + '<ul>';
+                            $.each(lines, function(file2, lines2) {
+                                // every child element should be contained in a <li>
+                                if ( typeof(lines2) == 'object' ) {
+                                    var id = 'sites_'+file+'/'+file2;
+                                    var up_id = 'sites_'+file;
+                                    tree = tree + '<li> <input id="'+id+'" class="parent checkbox parent-'+up_id+' cbox" type="checkbox" value="1" checked="checked"/>';
+                                    tree = tree + '<label class="choice " for="'+id+'">'+file2+'</label>';
+
+                                    $.each(lines2, function(file3, lines3) {
+                                        // only handle files up to 2 directories under root
+                                        if ( typeof(lines3) == 'object' ) {
+                                            return true;
+                                        }
+                                        tree = tree + '<ul>';
+                                        // grandchild elements.. should contain starting and closing <li> tags
+                                        var id = 'sites_'+file+'/'+file2+'/'+file3;
+                                        var up_id = 'sites_'+file+'/'+file2;
+                                        var up_up_id = 'sites_'+file;
+                                        tree = tree + '<li> <input id="'+id+'" name="'+id+'" class="parent-'+up_id+' parent-'+up_up_id+' checkbox cbox" type="checkbox" value="1" checked="checked"/>'+ '<label class="choice " for="'+id+'">'+file3+' ('+lines3+' sites)</label> </li>';
+                                        tree = tree + '</ul>';
+                                    }); //end foreach of grandchild level element
+                                } else {
+                                    var id = 'sites_'+file+'/'+file2;
+                                    var up_id = 'sites_'+file;
+                                     // files that exists in one directory under root (should have opening and closing <li> tags)
+                                    tree = tree + '<li> <input id="'+id+'" name="'+id+'" class="parent-'+up_id+' checkbox cbox" type="checkbox" value="1" checked="checked"/>'+
+                                        '<label class="choice " for="'+id+'">'+file2+' ('+lines2+' sites)</label> </li>';
+                                }
+                            }); //end foreach of child level element
+                            tree = tree + '</ul>';
+                        } else {
+                            // file that exists in root samples dir
+                            var id = 'sites_'+file;
+                            tree = tree + '<li> <input id="'+id+'" name="'+id+'" class="checkbox cbox" type="checkbox" value="1" checked="checked"/>'+
+                                    '<label for="'+id+'">'+file+' ('+lines+' sites)</label> </li>';
+                        }
+                    });  // end foreach parent level element
+                    tree = tree + '</ul>';
+                    $('div#sample').append(tree);
+                    $('#tree_samples').checkboxTree();
+                    checkboxHandlerObj.init();
+                 });
+    },
+
+        init: function() {
+            $('#sample input:checkbox[class~="parent"]').click(checkboxHandlerObj.parentClicked);
+            $('#sample input:checkbox[class^="parent-"]').click(checkboxHandlerObj.childClicked);
+            // to be implemented...
+            // $('#th_opts input:checkbox[class~="parent"]').click(checkboxHandlerObj.parentClicked);   
+            // $('#th_opts input:checkbox[class^="parent-"]').click(checkboxHandlerObj.childClicked);
+        },
+        
+        parentClicked: function() {
+            if ( $(this).attr('checked') ) {
+                $('#sample input:checkbox[class~="parent-' + $(this).attr('id') + '"]').attr('checked', 'checked');
+            } else {
+                $('#sample input:checkbox[class~="parent-' + $(this).attr('id') + '"]').removeAttr('checked');
+            }
+        },
+        
+        childClicked: function() {
+            var temp = $(this).attr('class').split('-');
+            var parentId = temp[1];
+    
+            if ( $(this).attr('checked') ) {
+                $('#' + parentId).attr('checked', 'checked');
+            } else {
+                var atLeastOneEnabled = false;
+                $('#sample input:checkbox[class~="' + $(this).attr('class') + '"]').each( function() {
+                    if ( $(this).attr('checked') ) {
+                        atLeastOneEnabled = true;
+                    }
+                } );
+                if ( !atLeastOneEnabled ) {
+                    $('#' + parentId).removeAttr('checked');
+                }
+            }
+        }
+    } //end checkboxHandlerObj
+
+    $(document).ready(function() {
+        $('#revision-latest').click(function(){
+            if ( $('#branch').val() == '' ) {
+                alert('Please Specify Branch!');
+                return true;
+            }
+            $.ajax({
+                type: "GET",
+                url: "cgi-bin/get_latest.pl",
+                dataType: "JSON", 
+                data: {branch : $('#branch').val()},
+                success: function(data) {
+                    $('#revision').val(parseInt(data));
+                    $('#use-latest').attr('checked', true);
+                    $('#use-latest').val(1);
+                }
+            });
+        });
+        
+        $('#th').checkboxTree();
+
+        $('#select-all').click(function() {
+            $('.cbox').attr('checked', true);
+        });
+        
+        $('#deselect-all').click(function() {
+            $('.cbox').attr('checked', false);
+        });
+
+        checkboxHandlerObj.populate();
+    });
+</script>
+
+		<form id="form" class="appnitro"  method="post" action="cgi-bin/autotest.pl">
+        <div class="form_description">
+			<h2>Autotest Launcher</h2>
+		</div>						
+			
+        <label class="description" for="branch">Branch </label>
+		<div>
+		<select class="select medium" id="branch" name="branch"> 
+			<option value="" selected="selected"></option>
+			<?php
+				$cmd = "svn ls " . $CONFIG["SVN_PATH"] . "branches";
+				$branches = `$cmd`;
+				echo '<option value="trunk" >trunk </option>' ."\n";
+				foreach(split("/\n", $branches) as $branch) {
+					if($branch =="") {
+						continue;
+					}
+					echo "<option value=\"$branch\" >$branch</option> \n";
+				}
+			?>
+
+		</select>
+		</div> 
+        <br/>
+        
+        <label class="description" for="revision">Revision </label>
+		<div>
+			<input id="revision" name="revision" class="text medium" type="text" maxlength="255" value=""/> 
+            <input id="revision-latest" name="revision-latest" class="button" type="button" value="Use Latest"/>
+            <input id="use-latest" name="use-latest" type="checkbox" value="0" class="hidden"/>
+        </div> 
+        <br/>
+        
+        <label class="description" for="element_2">Reason/Notes <i> (no spaces) </i></label>
+        <div>
+			<input id="reason" name="reason" class="text medium" type="text" maxlength="255" value=""/> 
+		</div> 
+        <br/>
+		<label class="description" for="element_5">Options </label>
+		<span>
+			<input id="svn_update" name="svn_update" class="checkbox" type="checkbox" value="0" /> <label for="svn_update">Update Repos</label> <br/>
+            <input id="build_repos" name="build_repos" class="checkbox" type="checkbox" value="0" /> <label for="build_repos">Build Repos</label> <br/>
+        </span> 
+        <br/>
+		<label class="description" for="element_6">AutoClassifier Options </label>
+		<span>
+			<input id="weighted_terms" name="weighted_terms" class="checkbox" type="checkbox" value="1" checked="checked"/>
+            <label for="weighted_terms">Weighted Terms</label>
+            <br/>
+
+            <input id="content_rating" name="content_rating" class="checkbox" type="checkbox" value="1" checked="checked"/>
+            <label for="content_rating">Content Rating</label>
+            <br/>
+
+            <input id="link_analyzer" name="link_analyzer" class="checkbox" type="checkbox" value="1" checked="checked"/>
+            <label for="link_analyzer">Link Analyzer</label>
+            <br/>
+
+            <input id="toaster" name="toaster" class="checkbox" type="checkbox" value="1" checked="checked"/>
+            <label for="toaster">TOASTER</label>
+            <br/>
+
+            <input id="login" name="login" class="checkbox" type="checkbox" value="1" checked="checked"/>
+            <label for="login">Login</label>
+            <br/>
+        </span>
+        <br/> 
+		<label class="description" for="element_6">Other Options </label>
+        <div id="th_opts">   
+            <ul id="th">
+                <li> <input id="threathound" name="threathound" class="checkbox " type="checkbox" value="1" checked="checked"/>
+                <label for="threathound">ThreatHound</label>
+                <ul>
+                    <li> <input id="av_scanners" name="av_scanners" class="checkbox " type="checkbox" value="1" checked="checked"/>
+                    <label for="av_scanners">AV Scanners</label>
+                        <ul>
+                            <li><input class="checkbox" id="avast" name="avast" type="checkbox" value="1" checked="checked" /> <label for="avast"> Avast </label></li> 
+                            <li><input class="checkbox" id="avira" name="avira" type="checkbox" value="1" checked="checked" /> <label for="avira"> Avira </label></li> 
+                            <li><input class="checkbox" id="bitdef" name="bitdef" type="checkbox" value="1" checked="checked" /> <label for="bitdef"> Bitdef </label></li> 
+                            <li><input class="checkbox" id="clam" name="clam" type="checkbox" value="1" checked="checked" /> <label for="clam"> Clam </label></li> 
+                            <li><input class="checkbox" id="drweb" name="drweb" type="checkbox" value="1" checked="checked" /> <label for="drweb"> Drweb </label></li> 
+                            <li><input class="checkbox" id="fprot" name="fprot" type="checkbox" value="1" checked="checked" /> <label for="fprot"> Fprot </label></li> 
+                            <li><input class="checkbox" id="kav" name="kav" type="checkbox" value="1" checked="checked" /> <label for="kav"> Kav </label></li> 
+                            <li><input class="checkbox" id="nod32" name="nod32" type="checkbox" value="1" checked="checked" /> <label for="nod32"> Nod32 </label></li> 
+                            <li><input class="checkbox" id="vba32" name="vba32" type="checkbox" value="1" checked="checked" /> <label for="vba32"> Vba32 </label></li> 
+                        </ul>
+                </ul>
+                <ul >
+                    <li><input class="checkbox" id="angler" name="angler" type="checkbox" value="1" checked="checked" /> <label for="angler"> Angler </label></li> 
+                    <li><input class="checkbox" id="behavioral" name="behavioral" type="checkbox" value="1" checked="checked" /> <label for="behavioral"> Behavioral (includes postbee) </label></li> 
+                    <li><input class="checkbox" id="gsb" name="gsb" type="checkbox" value="1" checked="checked" /> <label for="gsb"> GSB </label></li> 
+                    <li><input class="checkbox" id="malfarm" name="malfarm" type="checkbox" value="1" checked="checked" /> <label for="malfarm"> Malfarm </label></li> 
+                    <li><input class="checkbox" id="insert" name="insert" type="checkbox" value="1" checked="checked" /> <label for="insert"> Insert </label></li> 
+                    <li><input class="checkbox" id="mailwatch" name="mailwatch" type="checkbox" value="1" checked="checked" /> <label for="mailwatch"> Mail Watch </label></li> 
+                    <li><input class="checkbox" id="tweetwatch"  name="tweetwatch" type="checkbox" value="1" checked="checked" /> <label for="tweetwatch"> Tweet Watch </label></li> 
+                    <li><input class="checkbox" id="wot"  name="wot" type="checkbox" value="1" checked="checked" /> <label for="wot"> WOT </label></li> 
+                </ul>
+            </ul>
+        </div>
+        <br/>
+        <br/>
+
+		<label class="description" for="element_7">Samples&nbsp; &nbsp; &nbsp; &nbsp; 
+            <input type="button" class="sample-button" id="select-all" value="select all"/>
+            <input type="button" class="sample-button" id="deselect-all" value="deselect all"/>
+        </label>      
+        <div id="sample">
+            <!-- make checkboxes for samples on a heirarchical level.. -->
+        </div> 
+        <br/>
+        <br/>
+
+		<div>
+		<label class="description" for="element_3">Launch after</label>
+		<span>
+			<input id="time_value" name="after_time_value" class="text " size="2" type="text" maxlength="2" value="0"/> - 
+		</span>
+		<select class="select small" id="after_time" name ="after_time">
+			<option value="minutes" selected="selected">minute(s)</option>
+			<option value="hours">hour(s)</option>
+			<option value="days">day(s)</option>
+		</select>
+		</div>
+        <br/>
+        <div class="buttons">
+				<input id="saveForm" class="button_text" type="submit" name="submit" value="Submit" />
+        </div>
+		</form>	
+
+<?php require_once('footer.php' ); ?>

@@ -1,0 +1,101 @@
+<?php require_once("header.php"); ?>
+	
+		<form id="form_58387" class="appnitro"  method="post" action="cgi-bin/autotest.pl">
+        <div class="form_description">
+			<h2>Autotest Launcher</h2>
+		</div>						
+			<ul >
+			
+					<li id="li_7" >
+		<label class="description" for="revision">Revision </label>
+		<div>
+			<input id="revision" name="revision" class="element text small" type="text" maxlength="255" value=""/> 
+		</div> 
+        <p class="guidelines" id="guide_1"><small>Make sure that AutoClassifier has a higher revision than other projects like AVTools and TOASTER.</small></p> 
+		</li>		<li id="li_4" >
+		<label class="description" for="branch">Branch </label>
+		<div>
+		<select class="element select medium" id="branch" name="branch"> 
+			<option value="" selected="selected"></option>
+			<?php
+				$branches = `svn ls svn+ssh://autobuild@svn/TPTDev/AutoClassifier/branches`;
+				echo '<option value="trunk" >trunk </option>' ."\n";
+				foreach(split("/\n", $branches) as $branch) {
+					if($branch =="") {
+						continue;
+					}
+					echo "<option value=\"$branch\" >$branch</option> \n";
+				}
+			?>
+
+		</select>
+		</div> 
+		</li>		<li id="li_2" >
+		<label class="description" for="element_2">Reason/Notes <i> (no spaces) </i></label>
+		<div>
+			<input id="reason" name="reason" class="element text large" type="text" maxlength="255" value=""/> 
+		</div> 
+		</li>		<li id="li_5" >
+		<label class="description" for="element_5">Options </label>
+		<span>
+			<input id="svn_update" name="svn_update" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="svn_update">Update Repos</label>
+            <input id="build_repos" name="build_repos" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="build_repos">Build Repos</label>
+		</span> 
+		</li>		<li id="li_6" >
+		<label class="description" for="element_6">AutoClassifier Options </label>
+		<span>
+			<input id="weighted_terms" name="weighted_terms" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="weighted_terms">Weighted Terms</label>
+            <input id="content_rating" name="content_rating" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="content_rating">Content Rating</label>
+            <input id="link_analyzer" name="link_analyzer" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="link_analyzer">Link Analyzer</label>
+            <input id="toaster" name="toaster" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="toaster">TOASTER</label>
+		</span> 
+        </li>	<li id="li_7" >
+		<label class="description" for="element_6">Other Options </label>
+		<span>
+			<input id="threathound" name="threathound" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+            <label class="choice" for="threathound">ThreatHound</label>
+		</span> 
+
+        </li>	<li id="li_8" >
+		<label class="description" for="element_7">Samples</label>
+		<span>
+            <?php
+                $samples = get_samples();
+                foreach ($samples as $sample => $count) {
+            ?>
+                <input id="sample_<?php echo $sample?>" name="<?php echo "sample_$sample"?>" class="element checkbox" type="checkbox" value="1" checked="checked"/>
+                <label class="choice" for="sample_<?php echo $sample?>"><?php echo "$sample ($count sites)"?></label>
+            <?
+                }
+            ?>
+		</span> 
+        </li>	
+
+            <li id="li_3" >
+		<div>
+		<label class="description" for="element_3">Launch after</label>
+		<span>
+			<input id="time_value" name="after_time_value" class="element text " size="2" type="text" maxlength="2" value="0"/> - 
+		</span>
+		<select class="element select small" id="after_time" name ="after_time">
+			<option value="minutes" selected="selected">minute(s)</option>
+			<option value="hours">hour(s)</option>
+			<option value="days">day(s)</option>
+		</select>
+		</div>
+		</li>			
+					<li class="buttons">
+			    <input type="hidden" name="form_id" value="58387" />
+			    
+				<input id="saveForm" class="button_text" type="submit" name="submit" value="Submit" />
+		</li>
+			</ul>
+		</form>	
+
+<?php require_once('footer.php' ); ?>
